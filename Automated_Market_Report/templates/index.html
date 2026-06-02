@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Situation Automator</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; }
+        .upload-section { border: 2px dashed #3498db; padding: 40px; text-align: center; border-radius: 8px; margin-bottom: 30px; background: #ebf5fb; }
+        .btn { background: #3498db; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .btn:hover { background: #2980b9; }
+        #status { margin-top: 20px; font-weight: bold; color: #27ae60; text-align: center; }
+        #results { margin-top: 40px; display: none; }
+        .report-img { max-width: 100%; border: 1px solid #ddd; border-radius: 8px; }
+        .peak-card { background: #fff; border-left: 5px solid #e74c3c; margin: 10px 0; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .search-link { color: #3498db; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Universal Market Automator</h1>
+        <p style="text-align: center;">Upload any NSE/BSE Excel or CSV file to generate a professional situation report.</p>
+        
+        <div class="upload-section">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" id="fileInput" name="file" accept=".xlsx, .csv" required><br><br>
+                <button type="submit" class="btn">🚀 Generate Analysis Report</button>
+            </form>
+            <div id="status"></div>
+        </div>
+
+        <div id="results">
+            <h2>Analysis Complete!</h2>
+            <a id="downloadLink" href="#" target="_blank" class="btn" style="background: #27ae60; display: inline-block; margin-bottom: 20px;">⬇️ Download PNG Report</a>
+            <div id="peaksContainer"></div>
+            <h3>Graph Preview:</h3>
+            <img id="reportPreview" class="report-img" src="" alt="Report Preview">
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const status = document.getElementById('status');
+            const results = document.getElementById('results');
+            status.innerText = "⏳ Processing data & identifying peaks...";
+            
+            const formData = new FormData();
+            formData.append('file', document.getElementById('fileInput').files[0]);
+
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.innerText = "✅ Analysis Finished!";
+                    results.style.display = "block";
+                    document.getElementById('reportPreview').src = "/output/Automated_Report.png?t=" + new Date().getTime();
+                    document.getElementById('downloadLink').href = "/output/Automated_Report.png";
+                    
+                    const peaksContainer = document.getElementById('peaksContainer');
+                    peaksContainer.innerHTML = "<h3>Detected Inflations:</h3>";
+                    data.peaks.forEach(p => {
+                        peaksContainer.innerHTML += `
+                            <div class="peak-card">
+                                <strong>Date: ${p.Date}</strong> | Turnover: ${p.Lakhs.toFixed(2)} Lakhs<br>
+                                <a href="https://www.google.com/search?q=Bank+stock+news+${p.Date}" target="_blank" class="search-link">🔍 Surf Google for News around this date</a>
+                            </div>
+                        `;
+                    });
+                } else {
+                    status.innerText = "❌ Error: " + data.message;
+                }
+            } catch (err) {
+                status.innerText = "❌ Connection failed. Ensure the server is running.";
+            }
+        };
+    </script>
+</body>
+</html>

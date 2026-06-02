@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.env
+
+# App Temporary Data
+Automated_Market_Report/uploads/*
+Automated_Market_Report/output/*
+
+# Generated Reports (Users should generate their own)
+*.png
+*.xlsx
+*.csv
+# Exceptions: Keep the raw data folders
+!NSE & BSE DATA/**
+!Equitas/**
+!Ujjivan/**
+!Market analysis/*.xlsx
+!nse stock analysis/*.xlsx
+
+# OS files
+.DS_Store
+Thumbs.db

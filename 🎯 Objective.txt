@@ -1,0 +1,32 @@
+🎯 Objective
+
+To analyze how stock market activity of
+
+Equitas Small Finance Bank
+Ujjivan Small Finance Bank
+
+changes during important events using trading data.
+
+
+❗ Why January only?
+
+Because:
+
+👉 Q3 results (Oct–Dec performance)
+👉 Are announced in January
+
+So:
+
+✔ Event will happen in Jan
+✔ But exact day → YOU detect from data
+
+------------------------------------------------
+08-04-2026
+
+close price, no of shares (this is like count), total turnover (this is like value of those counts) - take these columns
+
+need to do like weekly (preferred), monthly and yearly avg of total turnover and get insights like how much did equitas and ujjivan has did turnover.
+
+take 2 years data from bse and nse.
+
+do like graph.
