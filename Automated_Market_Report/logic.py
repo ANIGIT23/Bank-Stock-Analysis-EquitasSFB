@@ -81,7 +81,7 @@ def robust_read_market_data(file_path):
     return df, bank_name, detected_exch
 
 def process_market_data(file_path, output_folder):
-    df = robust_read_market_data(file_path)
+    df, _, _ = robust_read_market_data(file_path)
     
     # 5. RESAMPLE WEEKLY
     weekly = df.set_index('Date').resample('W-MON').agg({
