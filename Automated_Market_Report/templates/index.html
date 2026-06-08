@@ -3,80 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market Situation Automator</title>
+    <title>Professional Market Automator v7.0</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; text-align: center; }
-        .upload-section { border: 2px dashed #3498db; padding: 40px; text-align: center; border-radius: 8px; margin-bottom: 30px; background: #ebf5fb; }
-        .btn { background: #3498db; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        .btn:hover { background: #2980b9; }
-        #status { margin-top: 20px; font-weight: bold; color: #27ae60; text-align: center; }
+        body { font-family: 'Arial', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #2c3e50; }
+        .container { max-width: 950px; margin: auto; background: white; padding: 45px; border-radius: 12px; box-shadow: 0 4px 30px rgba(0,0,0,0.1); text-align: center; }
+        h1 { font-size: 32px; font-weight: bold; margin-bottom: 45px; }
+        .exch-select { margin-bottom: 20px; font-size: 16px; }
+        .upload-row { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .btn { width: 100%; max-width: 500px; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
+        .btn-blue { background: #3498db; color: white; }
+        .btn-blue:hover { background: #2980b9; }
+        .btn-green { background: #27ae60; color: white; font-size: 18px; margin-top: 55px; opacity: 0.6; cursor: not-allowed; }
+        .btn-green.active { opacity: 1; cursor: pointer; }
+        .btn-green.active:hover { background: #219150; }
+        .status { margin-top: 10px; font-size: 14px; color: #7f8c8d; }
         #results { margin-top: 40px; display: none; }
-        .report-img { max-width: 100%; border: 1px solid #ddd; border-radius: 8px; }
-        .peak-card { background: #fff; border-left: 5px solid #e74c3c; margin: 10px 0; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .search-link { color: #3498db; text-decoration: none; font-weight: bold; }
+        .report-img { max-width: 100%; border: 1px solid #ddd; border-radius: 8px; margin-top: 20px; }
+        .link-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+        .link-btn { background: #ecf0f1; border: 1px solid #bdc3c7; padding: 5px 10px; border-radius: 3px; cursor: pointer; text-decoration: none; color: #2c3e50; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 Universal Market Automator</h1>
-        <p style="text-align: center;">Upload any NSE/BSE Excel or CSV file to generate a professional situation report.</p>
+        <h1>Bank Stock Analysis Automator</h1>
         
-        <div class="upload-section">
-            <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" id="fileInput" name="file" accept=".xlsx, .csv" required><br><br>
-                <button type="submit" class="btn">🚀 Generate Analysis Report</button>
-            </form>
-            <div id="status"></div>
+        <div class="exch-select">
+            <input type="radio" id="nse" name="exch" value="NSE" checked> <label for="nse">NSE Data</label>
+            <input type="radio" id="bse" name="exch" value="BSE" style="margin-left: 65px;"> <label for="bse">BSE Data</label>
+        </div>
+
+        <div class="upload-row">
+            <div style="width: 100%;">
+                <button id="btn1" class="btn btn-blue" onclick="document.getElementById('file1').click()">📁 Upload Bank 1 File</button>
+                <input type="file" id="file1" hidden onchange="updateStatus(1)">
+                <div id="status1" class="status">Ready.</div>
+            </div>
+            
+            <div style="width: 100%;">
+                <button id="btn2" class="btn btn-blue" onclick="document.getElementById('file2').click()">📁 Upload Bank 2 File</button>
+                <input type="file" id="file2" hidden onchange="updateStatus(2)">
+                <div id="status2" class="status">Ready.</div>
+            </div>
+
+            <button id="runBtn" class="btn btn-green" onclick="generateReport()" disabled>🚀 Generate Clickable Professional Report</button>
         </div>
 
         <div id="results">
-            <h2>Analysis Complete!</h2>
-            <a id="downloadLink" href="#" target="_blank" class="btn" style="background: #27ae60; display: inline-block; margin-bottom: 20px;">⬇️ Download PNG Report</a>
-            <div id="peaksContainer"></div>
-            <h3>Graph Preview:</h3>
-            <img id="reportPreview" class="report-img" src="" alt="Report Preview">
+            <h2 id="finalStatus" style="color: #27ae60;">DONE! Saved to folder.</h2>
+            <div id="linksHeader" style="font-weight: bold; margin-bottom: 10px;">Verify Events via Google News:</div>
+            <div id="linksContainer" class="link-grid"></div>
+            <div style="margin-top: 30px;">
+                <img id="reportPreview" class="report-img" src="" alt="Report Preview">
+            </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('uploadForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const status = document.getElementById('status');
+        let file1Selected = false;
+        let file2Selected = false;
+
+        function updateStatus(idx) {
+            const input = document.getElementById('file' + idx);
+            const btn = document.getElementById('btn' + idx);
+            const status = document.getElementById('status' + idx);
+            
+            if (input.files.length > 0) {
+                btn.innerText = "✅ File " + idx + " Loaded";
+                btn.style.background = "#95a5a6";
+                status.innerText = "Selected: " + input.files[0].name;
+                status.style.color = "#27ae60";
+                if (idx === 1) file1Selected = true;
+                if (idx === 2) file2Selected = true;
+            }
+
+            if (file1Selected && file2Selected) {
+                const runBtn = document.getElementById('runBtn');
+                runBtn.disabled = false;
+                runBtn.classList.add('active');
+            }
+        }
+
+        async function generateReport() {
+            const runBtn = document.getElementById('runBtn');
+            const finalStatus = document.getElementById('finalStatus');
             const results = document.getElementById('results');
-            status.innerText = "⏳ Processing data & identifying peaks...";
+            
+            runBtn.innerText = "⏳ Building Final Report...";
             
             const formData = new FormData();
-            formData.append('file', document.getElementById('fileInput').files[0]);
+            formData.append('file1', document.getElementById('file1').files[0]);
+            formData.append('file2', document.getElementById('file2').files[0]);
+            formData.append('exch', document.querySelector('input[name="exch"]:checked').value);
 
             try {
-                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const response = await fetch('/upload_compare', { method: 'POST', body: formData });
                 const data = await response.json();
                 
                 if (data.success) {
-                    status.innerText = "✅ Analysis Finished!";
+                    runBtn.innerText = "🚀 Generate Clickable Professional Report";
                     results.style.display = "block";
-                    document.getElementById('reportPreview').src = "/output/Automated_Report.png?t=" + new Date().getTime();
-                    document.getElementById('downloadLink').href = "/output/Automated_Report.png";
+                    document.getElementById('reportPreview').src = "/output/" + data.img_name + "?t=" + new Date().getTime();
                     
-                    const peaksContainer = document.getElementById('peaksContainer');
-                    peaksContainer.innerHTML = "<h3>Detected Inflations:</h3>";
-                    data.peaks.forEach(p => {
-                        peaksContainer.innerHTML += `
-                            <div class="peak-card">
-                                <strong>Date: ${p.Date}</strong> | Turnover: ${p.Lakhs.toFixed(2)} Lakhs<br>
-                                <a href="https://www.google.com/search?q=Bank+stock+news+${p.Date}" target="_blank" class="search-link">🔍 Surf Google for News around this date</a>
-                            </div>
-                        `;
+                    const linksContainer = document.getElementById('linksContainer');
+                    linksContainer.innerHTML = "";
+                    data.links.forEach(p => {
+                        const a = document.createElement('a');
+                        a.className = 'link-btn';
+                        a.innerText = p.code;
+                        a.href = p.link;
+                        a.target = "_blank";
+                        linksContainer.appendChild(a);
                     });
+                    
+                    window.scrollTo(0, document.body.scrollHeight);
                 } else {
-                    status.innerText = "❌ Error: " + data.message;
+                    alert("Error: " + data.message);
                 }
             } catch (err) {
-                status.innerText = "❌ Connection failed. Ensure the server is running.";
+                alert("Connection failed. Try again.");
             }
-        };
+        }
     </script>
 </body>
 </html>

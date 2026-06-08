@@ -1,45 +1,85 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import shutil
-from logic import process_market_data
+import pandas as pd
+from typing import List
+
+# Import the core logic functions
+# We use try/except to handle both local and server paths
+try:
+    from .logic import robust_read_market_data
+    from .Simple_Market_App import generate_full_package
+except ImportError:
+    from logic import robust_read_market_data
+    from Simple_Market_App import generate_full_package
 
 app = FastAPI()
 
-# Create directories if they don't exist
-os.makedirs("uploads", exist_ok=True)
-os.makedirs("output", exist_ok=True)
+# Setup paths relative to the current file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
-# Serve the output folder so images can be displayed
-app.mount("/output", StaticFiles(directory="output"), name="output")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Mount static folders
+app.mount("/output", StaticFiles(directory=OUTPUT_DIR), name="output")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    with open("templates/index.html", "r") as f:
+    with open(os.path.join(TEMPLATES_DIR, "index.html"), "r") as f:
         return f.read()
 
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    file_path = os.path.join("uploads", file.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
+@app.post("/upload_compare")
+async def upload_compare(
+    file1: UploadFile = File(...), 
+    file2: UploadFile = File(...),
+    exch: str = Form(...)
+):
+    path1 = os.path.join(UPLOADS_DIR, file1.filename)
+    path2 = os.path.join(UPLOADS_DIR, file2.filename)
+
+    with open(path1, "wb") as b1: shutil.copyfileobj(file1.file, b1)
+    with open(path2, "wb") as b2: shutil.copyfileobj(file2.file, b2)
+
     try:
-        report_path, peaks = process_market_data(file_path, "output")
-        # Format peaks for JSON response
-        peak_list = []
-        for _, row in peaks.iterrows():
-            peak_list.append({
-                "Date": row['Date'].strftime('%Y-%m-%d'),
-                "Lakhs": row['Lakhs']
-            })
-            
-        return {"success": True, "peaks": peak_list}
+        # Process data exactly like Simple_Market_App.py
+        data_map = {}
+        raw_map = {}
+
+        # Load Bank 1
+        df1, bank1, _ = robust_read_market_data(path1)
+        raw_map[bank1] = df1.copy()
+        data_map[bank1] = df1.set_index('Date').resample('W-MON')['Lakhs'].mean().reset_index()
+
+        # Load Bank 2
+        df2, bank2, _ = robust_read_market_data(path2)
+        raw_map[bank2] = df2.copy()
+        data_map[bank2] = df2.set_index('Date').resample('W-MON')['Lakhs'].mean().reset_index()
+
+        # Generate report package
+        # We temporarily change directory to OUTPUT_DIR to save files there
+        old_cwd = os.getcwd()
+        os.chdir(OUTPUT_DIR)
+        
+        try:
+            img_name, excel_name, links = generate_full_package(data_map, raw_map, exch)
+        finally:
+            os.chdir(old_cwd)
+
+        return {
+            "success": True, 
+            "img_name": img_name, 
+            "excel_name": excel_name, 
+            "links": links
+        }
     except Exception as e:
         return {"success": False, "message": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 App starting on http://127.0.0.1:8000")
     uvicorn.run(app, host="127.0.0.1", port=8000)
